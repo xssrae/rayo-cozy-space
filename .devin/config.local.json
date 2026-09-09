@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Exec(rm)",
+      "Exec(npm uninstall)",
+      "Exec(npm run)"
+    ]
+  }
+}
