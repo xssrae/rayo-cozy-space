@@ -1,15 +1,143 @@
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography } from "@mui/material";
+import {
+  Alert,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { importWorkspaceFn } from "@/server/import.functions";
 import { useWorkspace } from "./workspace-provider";
 
-type Candidate = { key: string; version: "v1" | "v2"; contents: string; counts: { projects: number; tasks: number; skills: number; tags: number } };
+type Candidate = {
+  key: string;
+  version: "v1" | "v2";
+  contents: string;
+  counts: { projects: number; tasks: number; skills: number; tags: number };
+};
 export function ImportAssistant() {
-  const session = authClient.useSession(); const workspace = useWorkspace(); const [candidate, setCandidate] = useState<Candidate | null>(null); const [result, setResult] = useState<Awaited<ReturnType<typeof importWorkspaceFn>> | null>(null); const [busy, setBusy] = useState(false);
-  useEffect(() => { if (!session.data?.user) return; for (const [key, version] of [["rayo-plan-workspace-v2", "v2"], ["rayo-plan-workspace-v1", "v1"]] as const) { const contents = localStorage.getItem(key); if (!contents) continue; try { const value = JSON.parse(contents); if ([value.projects, value.tasks, value.skills, value.tags].every(Array.isArray)) { setCandidate({ key, version, contents, counts: { projects: value.projects.length, tasks: value.tasks.length, skills: value.skills.length, tags: value.tags.length } }); break; } } catch { /* Invalid legacy data stays untouched. */ } } }, [session.data?.user]);
+  const session = authClient.useSession();
+  const workspace = useWorkspace();
+  const [candidate, setCandidate] = useState<Candidate | null>(null);
+  const [result, setResult] = useState<Awaited<
+    ReturnType<typeof importWorkspaceFn>
+  > | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!session.data?.user) return;
+    for (const [key, version] of [
+      ["rayo-plan-workspace-v2", "v2"],
+      ["rayo-plan-workspace-v1", "v1"],
+    ] as const) {
+      const contents = localStorage.getItem(key);
+      if (!contents) continue;
+      try {
+        const value = JSON.parse(contents);
+        if (
+          [value.projects, value.tasks, value.skills, value.tags].every(
+            Array.isArray,
+          )
+        ) {
+          setCandidate({
+            key,
+            version,
+            contents,
+            counts: {
+              projects: value.projects.length,
+              tasks: value.tasks.length,
+              skills: value.skills.length,
+              tags: value.tags.length,
+            },
+          });
+          break;
+        }
+      } catch {
+        /* Invalid legacy data stays untouched. */
+      }
+    }
+  }, [session.data?.user]);
   if (!candidate) return null;
-  const importData = async () => { setBusy(true); try { const imported = await importWorkspaceFn({ data: { contents: candidate.contents, sourceVersion: candidate.version } }); setResult(imported); await workspace.refresh(); } finally { setBusy(false); } };
-  const removeLocal = () => { localStorage.removeItem(candidate.key); setCandidate(null); };
-  return <Dialog open fullWidth maxWidth="sm"><DialogTitle>{result ? "Importação concluída" : "Importar seu espaço local?"}</DialogTitle><DialogContent>{result ? <Stack spacing={2}><Alert severity="success">{result.alreadyImported ? "Este espaço de trabalho já foi importado." : `${result.projects} projects, ${result.tasks} tasks, ${result.skills} skills and ${result.tags} etiquetas importadas.`}</Alert>{result.ambiguousDates > 0 && <Alert severity="info">{result.ambiguousDates} datas antigas não tinham um ano definido e foram deixadas sem prazo.</Alert>}<Typography color="text.secondary">Sua cópia no navegador foi mantida. Remova-a apenas depois de conferir os dados importados.</Typography></Stack> : <><Typography color="text.secondary">Encontramos dados salvos neste navegador. Confira as quantidades antes de importá-los para sua conta.</Typography><Stack direction="row" spacing={2} sx={{ mt: 2 }}><span>{candidate.counts.projects} projects</span><span>{candidate.counts.tasks} tasks</span><span>{candidate.counts.skills} skills</span><span>{candidate.counts.tags} tags</span></Stack></>}</DialogContent><DialogActions>{result ? <><Button onClick={() => setCandidate(null)}>Manter cópia local</Button><Button variant="contained" onClick={removeLocal}>Remover cópia local</Button></> : <><Button onClick={() => setCandidate(null)}>Agora não</Button><Button variant="contained" disabled={busy} onClick={importData}>{busy ? "Importando…" : "Importar"}</Button></>}</DialogActions></Dialog>;
+  const importData = async () => {
+    setBusy(true);
+    try {
+      const imported = await importWorkspaceFn({
+        data: {
+          contents: candidate.contents,
+          sourceVersion: candidate.version,
+        },
+      });
+      setResult(imported);
+      await workspace.refresh();
+    } finally {
+      setBusy(false);
+    }
+  };
+  const removeLocal = () => {
+    localStorage.removeItem(candidate.key);
+    setCandidate(null);
+  };
+  return (
+    <Dialog open fullWidth maxWidth="sm">
+      <DialogTitle>
+        {result ? "Importação concluída" : "Importar seu espaço local?"}
+      </DialogTitle>
+      <DialogContent>
+        {result ? (
+          <Stack spacing={2}>
+            <Alert severity="success">
+              {result.alreadyImported
+                ? "Este espaço de trabalho já foi importado."
+                : `${result.projects} projetos, ${result.tasks} tarefas, ${result.skills} habilidades e ${result.tags} etiquetas importadas.`}
+            </Alert>
+            {result.ambiguousDates > 0 && (
+              <Alert severity="info">
+                {result.ambiguousDates} datas antigas não tinham um ano definido
+                e foram deixadas sem prazo.
+              </Alert>
+            )}
+            <Typography color="text.secondary">
+              Sua cópia no navegador foi mantida. Remova-a apenas depois de
+              conferir os dados importados.
+            </Typography>
+          </Stack>
+        ) : (
+          <>
+            <Typography color="text.secondary">
+              Encontramos dados salvos neste navegador. Confira as quantidades
+              antes de importá-los para sua conta.
+            </Typography>
+            <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+              <span>{candidate.counts.projects} projetos</span>
+              <span>{candidate.counts.tasks} tarefas</span>
+              <span>{candidate.counts.skills} habilidades</span>
+              <span>{candidate.counts.tags} etiquetas</span>
+            </Stack>
+          </>
+        )}
+      </DialogContent>
+      <DialogActions>
+        {result ? (
+          <>
+            <Button onClick={() => setCandidate(null)}>
+              Manter cópia local
+            </Button>
+            <Button variant="contained" onClick={removeLocal}>
+              Remover cópia local
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button onClick={() => setCandidate(null)}>Agora não</Button>
+            <Button variant="contained" disabled={busy} onClick={importData}>
+              {busy ? "Importando…" : "Importar"}
+            </Button>
+          </>
+        )}
+      </DialogActions>
+    </Dialog>
+  );
 }

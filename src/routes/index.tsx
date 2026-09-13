@@ -10,17 +10,17 @@ export const Route = createFileRoute("/")({
   }),
   head: () => ({
     meta: [
-      { title: "Projects — Rayo Plan" },
+      { title: "Projetos — Rayo Plan" },
       {
         name: "description",
         content:
-          "A calm workspace for planning development projects and keeping momentum.",
+          "Um espaço tranquilo para planejar projetos e acompanhar seu progresso.",
       },
-      { property: "og:title", content: "Projects — Rayo Plan" },
+      { property: "og:title", content: "Projetos — Rayo Plan" },
       {
         property: "og:description",
         content:
-          "A calm workspace for planning development projects and keeping momentum.",
+          "Um espaço tranquilo para planejar projetos e acompanhar seu progresso.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

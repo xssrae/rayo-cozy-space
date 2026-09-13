@@ -38,8 +38,7 @@ export const Route = createFileRoute("/overview")({
       { title: "Visão geral — Rayo Plan" },
       {
         name: "description",
-        content:
-          "Uma visão geral dos seus projetos, tarefas e habilidades.",
+        content: "Uma visão geral dos seus projetos, tarefas e habilidades.",
       },
     ],
   }),
@@ -105,7 +104,8 @@ function OverviewPage() {
           <Box>
             <Typography variant="h1">Seu espaço, seu ritmo</Typography>
             <Typography color="text.secondary" className="heading-subtitle">
-              Acompanhe seus projetos, organize os próximos passos e veja suas habilidades crescerem. 🌿
+              Acompanhe seus projetos, organize os próximos passos e veja suas
+              habilidades crescerem. 🌿
             </Typography>
           </Box>
         </Box>
@@ -156,7 +156,9 @@ function OverviewPage() {
                 .slice(0, 4)
                 .map((project) => {
                   const progress = Math.round(
-                    project.total ? (project.completed / project.total) * 100 : 0,
+                    project.total
+                      ? (project.completed / project.total) * 100
+                      : 0,
                   );
                   return (
                     <Box
@@ -229,7 +231,7 @@ function OverviewPage() {
                       <Box className="task-checkbox" />
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography className="strong-copy overview-task-title">
-                          {task.title}
+                          {task.title || "Sem título"}
                         </Typography>
                         <Stack
                           direction="row"
@@ -256,7 +258,7 @@ function OverviewPage() {
           <Box className="panel-heading">
             <Stack direction="row" spacing={1} className="inline-center">
               <Sprout size={20} />
-              <Typography variant="h3">Skills habilidades no total</Typography>
+              <Typography variant="h3">Suas habilidades</Typography>
             </Stack>
             <Button
               component={Link}
@@ -298,9 +300,12 @@ function OverviewPage() {
             <Leaf size={18} />
           </Avatar>
           <Box>
-            <Typography className="strong-copy">Um passo de cada vez</Typography>
+            <Typography className="strong-copy">
+              Um passo de cada vez
+            </Typography>
             <Typography variant="body2" color="text.secondary">
-              Escolha uma tarefa pequena e reserve um momento para ela. Seu progresso acontece no seu ritmo. ☕
+              Escolha uma tarefa pequena e reserve um momento para ela. Seu
+              progresso acontece no seu ritmo. ☕
             </Typography>
           </Box>
         </Box>

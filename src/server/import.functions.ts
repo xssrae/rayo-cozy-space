@@ -29,6 +29,7 @@ const legacyTask = z
   .object({
     id: z.union([z.number(), z.string()]),
     title: z.string(),
+    description: z.string().max(10000).default(""),
     projectId: z.union([z.number(), z.string()]),
     status: z.string().default("To do"),
     progress: z.number().default(0),
@@ -159,6 +160,7 @@ export const importWorkspaceFn = createServerFn({ method: "POST" })
         workspaceId: workspace.id,
         projectId,
         title: task.title,
+        description: task.description,
         status: statusTask[task.status as keyof typeof statusTask] ?? "todo",
         progress: Math.max(0, Math.min(100, task.progress)),
         dueDate,

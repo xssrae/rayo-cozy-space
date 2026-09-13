@@ -103,11 +103,24 @@ export function ProjectsPage() {
           searchText.includes(query.toLowerCase()) &&
           (status === "All" || project.status === status) &&
           (tagFilter === "All tags" || project.tags.includes(tagFilter)) &&
-          (!crossFilter.skill || project.skillIds.includes(crossFilter.skill)) &&
-          (!crossFilter.tag || tagRecords.some((tag) => tag.id === crossFilter.tag && project.tags.includes(tag.name)))
+          (!crossFilter.skill ||
+            project.skillIds.includes(crossFilter.skill)) &&
+          (!crossFilter.tag ||
+            tagRecords.some(
+              (tag) =>
+                tag.id === crossFilter.tag && project.tags.includes(tag.name),
+            ))
         );
       }),
-    [projects, query, status, tagFilter, crossFilter.skill, crossFilter.tag, tagRecords],
+    [
+      projects,
+      query,
+      status,
+      tagFilter,
+      crossFilter.skill,
+      crossFilter.tag,
+      tagRecords,
+    ],
   );
 
   const openCreate = () => {
@@ -146,8 +159,7 @@ export function ProjectsPage() {
     setDialog(null);
   };
   const removeProject = (project: Project) => {
-    if (!window.confirm(`Delete “${project.name}” and its related tasks?`))
-      return;
+    if (!window.confirm(`Arquivar o projeto “${project.name}”?`)) return;
     deleteProject(project.id);
     setMenuAnchor(null);
     setDialog(null);
@@ -266,7 +278,7 @@ export function ProjectsPage() {
               value={tagFilter}
               onChange={(event) => setTagFilter(event.target.value)}
             >
-              <MenuItem value="All tags">All tags</MenuItem>
+              <MenuItem value="All tags">Todas as etiquetas</MenuItem>
               {tags.map((tag) => (
                 <MenuItem key={tag} value={tag}>
                   {tag}
@@ -277,7 +289,7 @@ export function ProjectsPage() {
         </Box>
         <Box className="results-line">
           <Typography className="strong-copy">
-            {filtered.length} {filtered.length === 1 ? "project" : "projects"}
+            {filtered.length} {filtered.length === 1 ? "projeto" : "projetos"}
           </Typography>
           <Typography variant="caption" color="text.secondary">
             Seus projetos
@@ -369,7 +381,8 @@ export function ProjectsPage() {
             </Box>
             <Typography variant="h2">Espaço para novas ideias</Typography>
             <Typography color="text.secondary">
-              Nenhum projeto corresponde aos filtros. Limpe os filtros ou comece algo novo. ✨
+              Nenhum projeto corresponde aos filtros. Limpe os filtros ou comece
+              algo novo. ✨
             </Typography>
             <Button
               variant="contained"
@@ -562,7 +575,7 @@ export function ProjectsPage() {
                     size="small"
                     endIcon={<ExternalLink size={15} />}
                   >
-                    Reference
+                    Referência
                   </Button>
                 )}
               </Stack>
@@ -572,20 +585,26 @@ export function ProjectsPage() {
                 ))}
               </Stack>
               <Box className="detail-progress">
-                <Typography className="strong-copy">Task progress</Typography>
+                <Typography className="strong-copy">
+                  Progresso das tarefas
+                </Typography>
                 <Typography>
                   {selected.completed} / {selected.total}
                 </Typography>
               </Box>
               <LinearProgress
                 variant="determinate"
-                value={selected.total ? (selected.completed / selected.total) * 100 : 0}
+                value={
+                  selected.total
+                    ? (selected.completed / selected.total) * 100
+                    : 0
+                }
               />
               <Box className="detail-note">
                 <Sparkles size={18} />
                 <Typography variant="body2">
-                  Nice work — this project has a clear next step and a steady
-                  pace.
+                  Organize os próximos passos deste projeto e avance no seu
+                  ritmo.
                 </Typography>
               </Box>
             </DialogContent>
@@ -611,9 +630,9 @@ export function ProjectsPage() {
         maxWidth="xs"
       >
         <DialogTitle component="div">
-          <Typography variant="h2">Your tags</Typography>
+          <Typography variant="h2">Suas etiquetas</Typography>
           <Typography variant="body2" color="text.secondary">
-            Keep labels simple and useful.
+            Use etiquetas simples para encontrar o que precisa.
           </Typography>
         </DialogTitle>
         <DialogContent>
@@ -633,7 +652,7 @@ export function ProjectsPage() {
             />
             <IconButton
               color="primary"
-              aria-label="Add tag"
+              aria-label="Adicionar etiqueta"
               onClick={createTag}
             >
               <Plus />
@@ -645,7 +664,7 @@ export function ProjectsPage() {
                 <Chip label={tag} />
                 <IconButton
                   size="small"
-                  aria-label={`Remove ${tag}`}
+                  aria-label={`Remover ${tag}`}
                   onClick={() => removeTag(tag)}
                 >
                   <X size={17} />
@@ -656,7 +675,7 @@ export function ProjectsPage() {
         </DialogContent>
         <DialogActions>
           <Button variant="contained" onClick={() => setDialog(null)}>
-            Done
+            Concluir
           </Button>
         </DialogActions>
       </Dialog>

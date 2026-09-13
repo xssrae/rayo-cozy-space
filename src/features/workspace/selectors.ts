@@ -4,7 +4,8 @@ export function getProjectProgress(projects: Project[]): number {
   if (!projects.length) return 0;
   return Math.round(
     (projects.reduce(
-      (sum, project) => sum + (project.total ? project.completed / project.total : 0),
+      (sum, project) =>
+        sum + (project.total ? project.completed / project.total : 0),
       0,
     ) /
       projects.length) *
@@ -29,6 +30,6 @@ export function getProjectName(
 ): string {
   return (
     workspace.projects.find((project) => project.id === projectId)?.name ??
-    "Unknown project"
+    "Projeto arquivado ou indisponível"
   );
 }

@@ -18,7 +18,7 @@ import {
   Blocks,
   ChevronLeft,
   ChevronRight,
-  CircleAjuda,
+  CircleHelp,
   FolderKanban,
   LayoutDashboard,
   ListChecks,
@@ -35,7 +35,8 @@ import { useWorkspace } from "@/features/workspace/workspace-provider";
 import { remainingFocusSeconds } from "@/features/reports/metrics";
 import { authClient } from "@/lib/auth-client";
 
-type ActivePage = "Overview" | "Projects" | "Tasks" | "Focus" | "Skills" | "Reports";
+type ActivePage =
+  "Overview" | "Projects" | "Tasks" | "Focus" | "Skills" | "Reports";
 
 function SidebarContent({
   active,
@@ -82,7 +83,11 @@ function SidebarContent({
           <Typography className="brand-name">rayo plan</Typography>
         )}
         {!mobile && (
-          <Tooltip title={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}>
+          <Tooltip
+            title={
+              collapsed ? "Expandir menu lateral" : "Recolher menu lateral"
+            }
+          >
             <IconButton className="collapse-button" onClick={onCollapse}>
               {collapsed ? (
                 <ChevronRight size={18} />
@@ -130,12 +135,20 @@ function SidebarContent({
         </Button>
         <Button
           className="profile-button"
-          startIcon={<Avatar className="profile-avatar">{user.name.slice(0, 2).toUpperCase()}</Avatar>}
+          startIcon={
+            <Avatar className="profile-avatar">
+              {user.name.slice(0, 2).toUpperCase()}
+            </Avatar>
+          }
         >
           {showLabels && (
             <Box className="profile-copy">
-              <Typography className="profile-name">{user.name || "Sua conta"}</Typography>
-              <Typography className="profile-role">Responsável pelo espaço</Typography>
+              <Typography className="profile-name">
+                {user.name || "Sua conta"}
+              </Typography>
+              <Typography className="profile-role">
+                Responsável pelo espaço
+              </Typography>
             </Box>
           )}
         </Button>
@@ -161,16 +174,38 @@ export function RayoShell({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [, tick] = useState(0);
   useEffect(() => {
-    if ((!workspace.activeFocus || workspace.activeFocus.status === "paused") && !workspace.activeBreak) return;
+    if (
+      (!workspace.activeFocus || workspace.activeFocus.status === "paused") &&
+      !workspace.activeBreak
+    )
+      return;
     const timer = window.setInterval(() => tick((value) => value + 1), 1000);
     return () => window.clearInterval(timer);
   }, [workspace.activeFocus, workspace.activeBreak]);
-  const remaining = workspace.activeFocus ? remainingFocusSeconds(workspace.activeFocus) : workspace.activeBreak ? Math.max(0, workspace.activeBreak.plannedSeconds - Math.floor((Date.now() - new Date(workspace.activeBreak.startedAt).getTime()) / 1000)) : null;
-  const today = new Intl.DateTimeFormat("pt-BR", { weekday: "long", month: "long", day: "numeric" }).format(new Date());
+  const remaining = workspace.activeFocus
+    ? remainingFocusSeconds(workspace.activeFocus)
+    : workspace.activeBreak
+      ? Math.max(
+          0,
+          workspace.activeBreak.plannedSeconds -
+            Math.floor(
+              (Date.now() -
+                new Date(workspace.activeBreak.startedAt).getTime()) /
+                1000,
+            ),
+        )
+      : null;
+  const today = new Intl.DateTimeFormat("pt-BR", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(new Date());
 
   return (
     <>
-      <Box className={`app-shell ${workspace.activeFocus || workspace.activeBreak ? "is-focusing" : ""}`}>
+      <Box
+        className={`app-shell ${workspace.activeFocus || workspace.activeBreak ? "is-focusing" : ""}`}
+      >
         {!compact && (
           <SidebarContent
             active={active}
@@ -212,23 +247,44 @@ export function RayoShell({
                   {today}
                 </Typography>
                 <Typography className="strong-copy">
-                  Bom ter você por aqui, {workspace.user.name || "there"}
+                  Bom ter você por aqui, {workspace.user.name || "você"}
                 </Typography>
               </Box>
             </Stack>
             {(workspace.activeFocus || workspace.activeBreak) && (
-              <Button component={Link} to="/focus" className="mini-focus" startIcon={<Timer size={17} />} aria-label="Abrir sessão de foco">
-                {workspace.activeBreak ? `Pausa ${String(Math.floor((remaining ?? 0) / 60)).padStart(2, "0")}:${String((remaining ?? 0) % 60).padStart(2, "0")}` : workspace.activeFocus?.status === "paused" ? "Pausado" : `${String(Math.floor((remaining ?? 0) / 60)).padStart(2, "0")}:${String((remaining ?? 0) % 60).padStart(2, "0")}`}
+              <Button
+                component={Link}
+                to="/focus"
+                className="mini-focus"
+                startIcon={<Timer size={17} />}
+                aria-label="Abrir sessão de foco"
+              >
+                {workspace.activeBreak
+                  ? `Pausa ${String(Math.floor((remaining ?? 0) / 60)).padStart(2, "0")}:${String((remaining ?? 0) % 60).padStart(2, "0")}`
+                  : workspace.activeFocus?.status === "paused"
+                    ? "Pausado"
+                    : `${String(Math.floor((remaining ?? 0) / 60)).padStart(2, "0")}:${String((remaining ?? 0) % 60).padStart(2, "0")}`}
               </Button>
             )}
             <Stack direction="row" spacing={1}>
               <ThemeToggle />
               <Tooltip title="Ajuda">
                 <IconButton aria-label="Ajuda">
-                  <CircleAjuda size={20} />
+                  <CircleHelp size={20} />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Sair"><IconButton aria-label="Sair" onClick={() => authClient.signOut().then(() => { window.location.href = "/login"; })}><LogOut size={20} /></IconButton></Tooltip>
+              <Tooltip title="Sair">
+                <IconButton
+                  aria-label="Sair"
+                  onClick={() =>
+                    authClient.signOut().then(() => {
+                      window.location.href = "/login";
+                    })
+                  }
+                >
+                  <LogOut size={20} />
+                </IconButton>
+              </Tooltip>
               <Tooltip title="Notificações">
                 <IconButton
                   aria-label="Notificações"
