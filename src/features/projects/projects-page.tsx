@@ -1,3 +1,4 @@
+import { label } from "@/lib/labels";
 import {
   Avatar,
   AvatarGroup,
@@ -34,7 +35,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useSearch } from "@tanstack/react-router";
 import { useMemo, useState, type ChangeEvent, type MouseEvent } from "react";
 import { RayoShell } from "@/components/rayo";
 import { getProjectProgress } from "@/features/workspace/selectors";
@@ -69,9 +70,11 @@ const emptyDraft: ProjectDraft = {
 };
 
 export function ProjectsPage() {
+  const crossFilter = useSearch({ from: "/" });
   const {
     projects,
     tags,
+    tagRecords,
     addProject,
     updateProject,
     deleteProject,
@@ -99,10 +102,12 @@ export function ProjectsPage() {
         return (
           searchText.includes(query.toLowerCase()) &&
           (status === "All" || project.status === status) &&
-          (tagFilter === "All tags" || project.tags.includes(tagFilter))
+          (tagFilter === "All tags" || project.tags.includes(tagFilter)) &&
+          (!crossFilter.skill || project.skillIds.includes(crossFilter.skill)) &&
+          (!crossFilter.tag || tagRecords.some((tag) => tag.id === crossFilter.tag && project.tags.includes(tag.name)))
         );
       }),
-    [projects, query, status, tagFilter],
+    [projects, query, status, tagFilter, crossFilter.skill, crossFilter.tag, tagRecords],
   );
 
   const openCreate = () => {
@@ -133,7 +138,9 @@ export function ProjectsPage() {
         name: draft.name.trim(),
         completed: 0,
         total: 12,
-        due: "Not set",
+        due: "Sem prazo",
+        dueDate: null,
+        skillIds: [],
         people: ["RA"],
       });
     setDialog(null);
@@ -170,11 +177,11 @@ export function ProjectsPage() {
   const importWorkspaceFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const success = importWorkspace(await file.text());
+    const success = await importWorkspace(await file.text());
     window.alert(
       success
-        ? "Workspace imported."
-        : "This file is not a valid Rayo workspace.",
+        ? "Espaço de trabalho importado."
+        : "Este arquivo não é um espaço de trabalho válido do Rayo.",
     );
     event.target.value = "";
   };
@@ -188,9 +195,9 @@ export function ProjectsPage() {
       <Box className="content-wrap">
         <Box className="page-heading">
           <Box>
-            <Typography variant="h1">Your projects</Typography>
+            <Typography variant="h1">Seus projetos</Typography>
             <Typography color="text.secondary" className="heading-subtitle">
-              Keep the important work moving, one calm step at a time.
+              Dê espaço às suas ideias e avance um passo de cada vez.
             </Typography>
           </Box>
           <Stack direction="row" spacing={1} className="project-actions">
@@ -199,7 +206,7 @@ export function ProjectsPage() {
               variant="outlined"
               startIcon={<Upload size={17} />}
             >
-              Import
+              Importar
               <input
                 hidden
                 accept="application/json"
@@ -212,14 +219,14 @@ export function ProjectsPage() {
               startIcon={<Download size={17} />}
               onClick={downloadWorkspace}
             >
-              Export
+              Exportar
             </Button>
             <Button
               variant="contained"
               startIcon={<Plus size={18} />}
               onClick={openCreate}
             >
-              New project
+              Novo projeto
             </Button>
           </Stack>
         </Box>
@@ -228,7 +235,7 @@ export function ProjectsPage() {
             size="small"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search projects"
+            placeholder="Buscar projetos"
             className="search-field"
             slotProps={{
               input: {
@@ -244,7 +251,7 @@ export function ProjectsPage() {
             {(["All", ...projectStatuses] as const).map((item) => (
               <Chip
                 key={item}
-                label={item}
+                label={label(item)}
                 clickable
                 color={status === item ? "primary" : "default"}
                 variant={status === item ? "filled" : "outlined"}
@@ -253,9 +260,9 @@ export function ProjectsPage() {
             ))}
           </Stack>
           <FormControl size="small" className="tag-select">
-            <InputLabel>Tag</InputLabel>
+            <InputLabel>Etiqueta</InputLabel>
             <Select
-              label="Tag"
+              label="Etiqueta"
               value={tagFilter}
               onChange={(event) => setTagFilter(event.target.value)}
             >
@@ -273,15 +280,15 @@ export function ProjectsPage() {
             {filtered.length} {filtered.length === 1 ? "project" : "projects"}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Sorted by recent activity
+            Seus projetos
           </Typography>
         </Box>
         {filtered.length ? (
           <Box className="project-grid">
             {filtered.map((project) => {
-              const percentage = Math.round(
-                (project.completed / project.total) * 100,
-              );
+              const percentage = project.total
+                ? Math.round((project.completed / project.total) * 100)
+                : 0;
               return (
                 <Box
                   component="article"
@@ -296,10 +303,10 @@ export function ProjectsPage() {
                     <Chip
                       size="small"
                       color={statusTone[project.status]}
-                      label={project.status}
+                      label={label(project.status)}
                     />
                     <IconButton
-                      aria-label={`More options for ${project.name}`}
+                      aria-label={`Mais opções para ${project.name}`}
                       size="small"
                       onClick={(event: MouseEvent<HTMLElement>) => {
                         event.stopPropagation();
@@ -326,7 +333,7 @@ export function ProjectsPage() {
                   </Stack>
                   <Box className="progress-copy">
                     <Typography variant="caption" className="strong-copy">
-                      {project.completed} of {project.total} tasks
+                      {project.completed} de {project.total} tarefas
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {percentage}%
@@ -342,7 +349,7 @@ export function ProjectsPage() {
                     >
                       <Clock3 size={16} />
                       <Typography variant="caption">
-                        Due {project.due}
+                        Prazo: {project.due}
                       </Typography>
                     </Stack>
                     <AvatarGroup max={3}>
@@ -360,17 +367,16 @@ export function ProjectsPage() {
             <Box className="empty-illustration">
               <Archive size={36} />
             </Box>
-            <Typography variant="h2">A little more breathing room</Typography>
+            <Typography variant="h2">Espaço para novas ideias</Typography>
             <Typography color="text.secondary">
-              No projects match these filters. Clear them, or start something
-              new. ✨
+              Nenhum projeto corresponde aos filtros. Limpe os filtros ou comece algo novo. ✨
             </Typography>
             <Button
               variant="contained"
               startIcon={<Plus size={18} />}
               onClick={openCreate}
             >
-              Create a project
+              Criar um projeto
             </Button>
           </Box>
         )}
@@ -381,15 +387,15 @@ export function ProjectsPage() {
         onClose={() => setMenuAnchor(null)}
       >
         <MenuItem onClick={() => selected && openEdit(selected)}>
-          Edit project
+          Editar projeto
         </MenuItem>
-        <MenuItem onClick={toggleProjectCompleted}>Toggle completed</MenuItem>
+        <MenuItem onClick={toggleProjectCompleted}>Alternar conclusão</MenuItem>
         <Divider />
         <MenuItem
           className="danger-item"
           onClick={() => selected && removeProject(selected)}
         >
-          <Trash2 size={16} /> Delete
+          <Trash2 size={16} /> Arquivar
         </MenuItem>
       </Menu>
       <Dialog
@@ -400,24 +406,24 @@ export function ProjectsPage() {
       >
         <DialogTitle component="div">
           <Typography variant="h2">
-            {dialog === "edit" ? "Edit project" : "Create a new project"}
+            {dialog === "edit" ? "Editar projeto" : "Criar um novo projeto"}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Give the work a clear home. You can refine the details anytime.
+            Organize sua ideia. Você pode ajustar os detalhes quando quiser.
           </Typography>
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2.25} className="dialog-stack">
             <TextField
               autoFocus
-              label="Project name"
+              label="Nome do projeto"
               value={draft.name}
               onChange={(event) =>
                 setDraft({ ...draft, name: event.target.value })
               }
             />
             <TextField
-              label="What are you making?"
+              label="O que você está criando?"
               multiline
               rows={3}
               value={draft.description}
@@ -426,17 +432,17 @@ export function ProjectsPage() {
               }
             />
             <TextField
-              label="Project details"
+              label="Detalhes do projeto"
               multiline
               rows={4}
               value={draft.details}
               onChange={(event) =>
                 setDraft({ ...draft, details: event.target.value })
               }
-              helperText="Context, goals, decisions, or acceptance notes."
+              helperText="Contexto, objetivos, decisões ou critérios de aceitação."
             />
             <TextField
-              label="Reference link"
+              label="Link de referência"
               type="url"
               value={draft.referenceUrl}
               onChange={(event) =>
@@ -458,14 +464,14 @@ export function ProjectsPage() {
               >
                 {projectStatuses.map((item) => (
                   <MenuItem key={item} value={item}>
-                    {item}
+                    {label(item)}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
             <Box>
               <Typography variant="body2" className="form-label">
-                Tags
+                Etiquetas
               </Typography>
               <Stack direction="row" className="chip-stack">
                 {tags.map((tag) => (
@@ -491,14 +497,14 @@ export function ProjectsPage() {
         </DialogContent>
         <DialogActions>
           <Button color="inherit" onClick={() => setDialog(null)}>
-            Cancel
+            Cancelar
           </Button>
           <Button
             variant="contained"
             onClick={saveProject}
             disabled={!draft.name.trim()}
           >
-            {dialog === "edit" ? "Save changes" : "Create project"}
+            {dialog === "edit" ? "Salvar alterações" : "Criar projeto"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -515,13 +521,13 @@ export function ProjectsPage() {
                 <Chip
                   size="small"
                   color={statusTone[selected.status]}
-                  label={selected.status}
+                  label={label(selected.status)}
                 />
                 <Typography variant="h2" className="detail-name">
                   {selected.name}
                 </Typography>
               </Box>
-              <IconButton aria-label="Close" onClick={() => setDialog(null)}>
+              <IconButton aria-label="Fechar" onClick={() => setDialog(null)}>
                 <X />
               </IconButton>
             </DialogTitle>
@@ -545,7 +551,7 @@ export function ProjectsPage() {
                   size="small"
                   variant="outlined"
                 >
-                  View tasks
+                  Ver tarefas
                 </Button>
                 {selected.referenceUrl && (
                   <Button
@@ -573,7 +579,7 @@ export function ProjectsPage() {
               </Box>
               <LinearProgress
                 variant="determinate"
-                value={(selected.completed / selected.total) * 100}
+                value={selected.total ? (selected.completed / selected.total) * 100 : 0}
               />
               <Box className="detail-note">
                 <Sparkles size={18} />
@@ -589,10 +595,10 @@ export function ProjectsPage() {
                 startIcon={<Trash2 size={17} />}
                 onClick={() => removeProject(selected)}
               >
-                Delete
+                Arquivar
               </Button>
               <Button variant="contained" onClick={() => openEdit(selected)}>
-                Edit project
+                Editar projeto
               </Button>
             </DialogActions>
           </>
@@ -615,7 +621,7 @@ export function ProjectsPage() {
             <TextField
               size="small"
               fullWidth
-              label="New tag"
+              label="Nova etiqueta"
               value={newTag}
               onChange={(event) => setNewTag(event.target.value)}
               onKeyDown={(event) => {

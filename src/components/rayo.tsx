@@ -1,3 +1,5 @@
+import { ThemeToggle } from "@/components/theme";
+import { label } from "@/lib/labels";
 import {
   Avatar,
   Box,
@@ -6,10 +8,8 @@ import {
   IconButton,
   LinearProgress,
   Stack,
-  ThemeProvider,
   Tooltip,
   Typography,
-  createTheme,
   useMediaQuery,
 } from "@mui/material";
 import { Link } from "@tanstack/react-router";
@@ -18,7 +18,7 @@ import {
   Blocks,
   ChevronLeft,
   ChevronRight,
-  CircleHelp,
+  CircleAjuda,
   FolderKanban,
   LayoutDashboard,
   ListChecks,
@@ -26,51 +26,16 @@ import {
   Settings,
   Sparkles,
   Tag,
+  Timer,
+  BarChart3,
+  LogOut,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useWorkspace } from "@/features/workspace/workspace-provider";
+import { remainingFocusSeconds } from "@/features/reports/metrics";
+import { authClient } from "@/lib/auth-client";
 
-// Shared theme constant; it is intentionally exported for future feature components.
-// eslint-disable-next-line react-refresh/only-export-components
-export const rayoTheme = createTheme({
-  palette: {
-    mode: "light",
-    primary: { main: "#B75C37", contrastText: "#FFF9F3" },
-    secondary: { main: "#6F8062" },
-    background: { default: "#F7F2EA", paper: "#FFF9F3" },
-    text: { primary: "#362D29", secondary: "#756A63" },
-    divider: "#E6DDD2",
-    success: { main: "#6F8062" },
-    warning: { main: "#C5793E" },
-    info: { main: "#78909C" },
-  },
-  shape: { borderRadius: 16 },
-  typography: {
-    fontFamily: '"Nunito Sans", sans-serif',
-    h1: { fontFamily: '"Fraunces", serif', fontWeight: 650, letterSpacing: 0 },
-    h2: { fontFamily: '"Fraunces", serif', fontWeight: 650, letterSpacing: 0 },
-    h3: { fontFamily: '"Fraunces", serif', fontWeight: 650, letterSpacing: 0 },
-    button: { textTransform: "none", fontWeight: 800, letterSpacing: 0 },
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: { borderRadius: 12, boxShadow: "none", paddingInline: 18 },
-      },
-    },
-    MuiTextField: { defaultProps: { variant: "outlined" } },
-    MuiOutlinedInput: {
-      styleOverrides: {
-        root: { borderRadius: 14, backgroundColor: "#FFF9F3" },
-      },
-    },
-    MuiDialog: {
-      styleOverrides: { paper: { borderRadius: 20, backgroundImage: "none" } },
-    },
-    MuiChip: { styleOverrides: { root: { borderRadius: 9, fontWeight: 700 } } },
-  },
-});
-
-type ActivePage = "Overview" | "Projects" | "Tasks" | "Skills";
+type ActivePage = "Overview" | "Projects" | "Tasks" | "Focus" | "Skills" | "Reports";
 
 function SidebarContent({
   active,
@@ -89,17 +54,20 @@ function SidebarContent({
   onTags?: (() => void) | undefined;
   progress: number;
 }) {
+  const { user } = useWorkspace();
   const showLabels = !collapsed || mobile;
 
   const items: {
     label: ActivePage;
     icon: typeof LayoutDashboard;
-    to: "/" | "/overview" | "/tasks" | "/skills";
+    to: "/" | "/overview" | "/tasks" | "/focus" | "/skills" | "/reports";
   }[] = [
     { label: "Overview", icon: LayoutDashboard, to: "/overview" as const },
     { label: "Projects", icon: FolderKanban, to: "/" as const },
     { label: "Tasks", icon: ListChecks, to: "/tasks" as const },
+    { label: "Focus", icon: Timer, to: "/focus" as const },
     { label: "Skills", icon: Blocks, to: "/skills" as const },
+    { label: "Reports", icon: BarChart3, to: "/reports" as const },
   ];
 
   return (
@@ -114,7 +82,7 @@ function SidebarContent({
           <Typography className="brand-name">rayo plan</Typography>
         )}
         {!mobile && (
-          <Tooltip title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
+          <Tooltip title={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}>
             <IconButton className="collapse-button" onClick={onCollapse}>
               {collapsed ? (
                 <ChevronRight size={18} />
@@ -135,7 +103,7 @@ function SidebarContent({
             startIcon={<item.icon size={20} strokeWidth={2.2} />}
             onClick={onCloseMobile}
           >
-            {showLabels && item.label}
+            {showLabels && label(item.label)}
           </Button>
         ))}
         <Button
@@ -143,31 +111,31 @@ function SidebarContent({
           startIcon={<Tag size={20} strokeWidth={2.2} />}
           onClick={onTags}
         >
-          {showLabels && "Tags"}
+          {showLabels && "Etiquetas"}
         </Button>
       </Stack>
       <Box className="sidebar-bottom">
         {showLabels && (
           <Box className="focus-panel">
-            <Typography variant="overline">THIS WEEK</Typography>
-            <Typography variant="h6">A steady rhythm</Typography>
+            <Typography variant="overline">SEU PROGRESSO</Typography>
+            <Typography variant="h6">Um passo de cada vez</Typography>
             <LinearProgress variant="determinate" value={progress} />
             <Typography variant="caption">
-              {progress}% across active work
+              {progress}% do trabalho concluído
             </Typography>
           </Box>
         )}
         <Button className="nav-button" startIcon={<Settings size={20} />}>
-          {showLabels && "Settings"}
+          {showLabels && "Configurações"}
         </Button>
         <Button
           className="profile-button"
-          startIcon={<Avatar className="profile-avatar">RA</Avatar>}
+          startIcon={<Avatar className="profile-avatar">{user.name.slice(0, 2).toUpperCase()}</Avatar>}
         >
           {showLabels && (
             <Box className="profile-copy">
-              <Typography className="profile-name">Rae Anderson</Typography>
-              <Typography className="profile-role">Workspace owner</Typography>
+              <Typography className="profile-name">{user.name || "Sua conta"}</Typography>
+              <Typography className="profile-role">Responsável pelo espaço</Typography>
             </Box>
           )}
         </Button>
@@ -187,13 +155,22 @@ export function RayoShell({
   progress: number;
   children: ReactNode;
 }) {
-  const compact = useMediaQuery(rayoTheme.breakpoints.down("md"));
+  const workspace = useWorkspace();
+  const compact = useMediaQuery("(max-width:899px)");
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if ((!workspace.activeFocus || workspace.activeFocus.status === "paused") && !workspace.activeBreak) return;
+    const timer = window.setInterval(() => tick((value) => value + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, [workspace.activeFocus, workspace.activeBreak]);
+  const remaining = workspace.activeFocus ? remainingFocusSeconds(workspace.activeFocus) : workspace.activeBreak ? Math.max(0, workspace.activeBreak.plannedSeconds - Math.floor((Date.now() - new Date(workspace.activeBreak.startedAt).getTime()) / 1000)) : null;
+  const today = new Intl.DateTimeFormat("pt-BR", { weekday: "long", month: "long", day: "numeric" }).format(new Date());
 
   return (
-    <ThemeProvider theme={rayoTheme}>
-      <Box className="app-shell">
+    <>
+      <Box className={`app-shell ${workspace.activeFocus || workspace.activeBreak ? "is-focusing" : ""}`}>
         {!compact && (
           <SidebarContent
             active={active}
@@ -224,7 +201,7 @@ export function RayoShell({
             <Stack direction="row" spacing={1.25} className="topbar-greeting">
               {compact && (
                 <IconButton
-                  aria-label="Open navigation"
+                  aria-label="Abrir navegação"
                   onClick={() => setMobileOpen(true)}
                 >
                   <MenuIcon />
@@ -232,22 +209,29 @@ export function RayoShell({
               )}
               <Box>
                 <Typography variant="caption" color="text.secondary">
-                  Monday, September 7
+                  {today}
                 </Typography>
                 <Typography className="strong-copy">
-                  Good evening, Rae
+                  Bom ter você por aqui, {workspace.user.name || "there"}
                 </Typography>
               </Box>
             </Stack>
+            {(workspace.activeFocus || workspace.activeBreak) && (
+              <Button component={Link} to="/focus" className="mini-focus" startIcon={<Timer size={17} />} aria-label="Abrir sessão de foco">
+                {workspace.activeBreak ? `Pausa ${String(Math.floor((remaining ?? 0) / 60)).padStart(2, "0")}:${String((remaining ?? 0) % 60).padStart(2, "0")}` : workspace.activeFocus?.status === "paused" ? "Pausado" : `${String(Math.floor((remaining ?? 0) / 60)).padStart(2, "0")}:${String((remaining ?? 0) % 60).padStart(2, "0")}`}
+              </Button>
+            )}
             <Stack direction="row" spacing={1}>
-              <Tooltip title="Help">
-                <IconButton aria-label="Help">
-                  <CircleHelp size={20} />
+              <ThemeToggle />
+              <Tooltip title="Ajuda">
+                <IconButton aria-label="Ajuda">
+                  <CircleAjuda size={20} />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Notifications">
+              <Tooltip title="Sair"><IconButton aria-label="Sair" onClick={() => authClient.signOut().then(() => { window.location.href = "/login"; })}><LogOut size={20} /></IconButton></Tooltip>
+              <Tooltip title="Notificações">
                 <IconButton
-                  aria-label="Notifications"
+                  aria-label="Notificações"
                   className="notification-button"
                 >
                   <Bell size={20} />
@@ -258,6 +242,6 @@ export function RayoShell({
           {children}
         </Box>
       </Box>
-    </ThemeProvider>
+    </>
   );
 }
