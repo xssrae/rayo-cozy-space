@@ -26,8 +26,14 @@ import { RayoShell } from "@/components/rayo";
 import { getProjectName } from "@/features/workspace/selectors";
 import { useWorkspace } from "@/features/workspace/workspace-provider";
 import { taskStatuses, type TaskStatus } from "@/features/workspace/types";
+import { requireSignedIn } from "@/lib/route-auth";
 
 export const Route = createFileRoute("/tasks")({
+  beforeLoad: ({ location }) => requireSignedIn(location.href),
+  validateSearch: (search: Record<string, unknown>) => ({
+    skill: typeof search["skill"] === "string" ? search["skill"] : undefined,
+    tag: typeof search["tag"] === "string" ? search["tag"] : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Tasks — Rayo Plan" },
@@ -48,16 +54,17 @@ const taskTone: Record<TaskStatus, "default" | "warning" | "success"> = {
 };
 
 function TasksPage() {
+  const crossFilter = Route.useSearch();
   const workspace = useWorkspace();
-  const { tasks, projects, addTask, toggleTaskDone } = workspace;
+  const { tasks, projects, activeFocus, addTask, toggleTaskDone } = workspace;
   const [filter, setFilter] = useState<TaskStatus | "All">("All");
   const [view, setView] = useState<"grid" | "kanban">("grid");
   const [title, setTitle] = useState("");
-  const [projectId, setProjectId] = useState(projects[0]?.id ?? 0);
+  const [projectId, setProjectId] = useState(projects[0]?.id ?? "");
   const [due, setDue] = useState("");
   const filtered = useMemo(
-    () => tasks.filter((task) => filter === "All" || task.status === filter),
-    [tasks, filter],
+    () => tasks.filter((task) => (filter === "All" || task.status === filter) && (!crossFilter.skill || task.skillIds.includes(crossFilter.skill)) && (!crossFilter.tag || task.tagIds.includes(crossFilter.tag))),
+    [tasks, filter, crossFilter.skill, crossFilter.tag],
   );
   const doneCount = tasks.filter((task) => task.status === "Done").length;
   const weekProgress = tasks.length
@@ -76,6 +83,10 @@ function TasksPage() {
             day: "2-digit",
           })
         : "Not set",
+      dueDate: due || null,
+      skillIds: [],
+      tagIds: [],
+      updatedAt: new Date().toISOString(),
       people: ["RA"],
     });
     setTitle("");
@@ -112,7 +123,7 @@ function TasksPage() {
           <Select
             size="small"
             value={projectId}
-            onChange={(event) => setProjectId(Number(event.target.value))}
+            onChange={(event) => setProjectId(event.target.value)}
             className="quick-create-project"
           >
             {projects.map((project) => (
@@ -188,6 +199,7 @@ function TasksPage() {
                     color={taskTone[task.status]}
                     label={task.status}
                   />
+                  {activeFocus?.taskId === task.id && <Chip size="small" color="primary" label="In focus" />}
                   <Typography variant="caption" color="text.secondary">
                     {getProjectName(workspace, task.projectId)}
                   </Typography>
@@ -283,6 +295,7 @@ function TasksPage() {
                           >
                             {task.title}
                           </Typography>
+                          {activeFocus?.taskId === task.id && <Chip size="small" color="primary" label="In focus" />}
                         </Stack>
                         <Typography variant="caption" color="text.secondary">
                           {getProjectName(workspace, task.projectId)}

@@ -1,3 +1,4 @@
+import { label } from "@/lib/labels";
 import {
   Avatar,
   Box,
@@ -28,15 +29,17 @@ import {
 } from "@/features/workspace/selectors";
 import { useWorkspace } from "@/features/workspace/workspace-provider";
 import type { ProjectStatus } from "@/features/workspace/types";
+import { requireSignedIn } from "@/lib/route-auth";
 
 export const Route = createFileRoute("/overview")({
+  beforeLoad: ({ location }) => requireSignedIn(location.href),
   head: () => ({
     meta: [
-      { title: "Overview — Rayo Plan" },
+      { title: "Visão geral — Rayo Plan" },
       {
         name: "description",
         content:
-          "A cozy overview of your projects, tasks, and skills — the whole workspace at a gentle glance.",
+          "Uma visão geral dos seus projetos, tarefas e habilidades.",
       },
     ],
   }),
@@ -67,43 +70,42 @@ function OverviewPage() {
   const weekProgress = getWorkspaceProgress(workspace);
   const stats = [
     {
-      label: "Active projects",
+      label: "Projetos ativos",
       value: String(activeProjects.length),
-      detail: `${projects.length} in the garden`,
+      detail: `${projects.length} projetos no total`,
       icon: FolderKanban,
       to: "/" as const,
     },
     {
-      label: "Tasks done",
+      label: "Tarefas concluídas",
       value: String(doneCount),
-      detail: `${tasks.length - doneCount} still simmering`,
+      detail: `${tasks.length - doneCount} por concluir`,
       icon: CircleCheckBig,
       to: "/tasks" as const,
     },
     {
-      label: "Skills fluent",
+      label: "Habilidades avançadas",
       value: String(fluentSkills),
-      detail: `${skills.length} on the shelf`,
+      detail: `${skills.length} habilidades no total`,
       icon: Blocks,
       to: "/skills" as const,
     },
     {
-      label: "Weekly rhythm",
+      label: "Progresso geral",
       value: `${weekProgress}%`,
-      detail: "A steady pace",
+      detail: "Cada passo conta",
       icon: Sunrise,
       to: "/overview" as const,
     },
   ];
   return (
     <RayoShell active="Overview" progress={weekProgress}>
-      <Box className="content-wrap">
+      <Box className="content-wrap overview-page">
         <Box className="page-heading">
           <Box>
-            <Typography variant="h1">Good evening, Rae</Typography>
+            <Typography variant="h1">Seu espaço, seu ritmo</Typography>
             <Typography color="text.secondary" className="heading-subtitle">
-              Here's the whole workspace at a gentle glance — projects, tasks,
-              and the skills you're growing. 🌿
+              Acompanhe seus projetos, organize os próximos passos e veja suas habilidades crescerem. 🌿
             </Typography>
           </Box>
         </Box>
@@ -137,7 +139,7 @@ function OverviewPage() {
             <Box className="panel-heading">
               <Stack direction="row" spacing={1} className="inline-center">
                 <FolderKanban size={20} />
-                <Typography variant="h3">Projects in bloom</Typography>
+                <Typography variant="h3">Projetos em andamento</Typography>
               </Stack>
               <Button
                 component={Link}
@@ -145,7 +147,7 @@ function OverviewPage() {
                 endIcon={<ArrowRight size={16} />}
                 size="small"
               >
-                All projects
+                Todos os projetos
               </Button>
             </Box>
             <Stack divider={<Divider flexItem />} spacing={2}>
@@ -154,7 +156,7 @@ function OverviewPage() {
                 .slice(0, 4)
                 .map((project) => {
                   const progress = Math.round(
-                    (project.completed / project.total) * 100,
+                    project.total ? (project.completed / project.total) * 100 : 0,
                   );
                   return (
                     <Box
@@ -175,12 +177,12 @@ function OverviewPage() {
                         <Chip
                           size="small"
                           color={statusTone[project.status]}
-                          label={project.status}
+                          label={label(project.status)}
                         />
                       </Stack>
                       <Box className="progress-copy">
                         <Typography variant="caption" color="text.secondary">
-                          {project.completed} of {project.total} tasks · due{" "}
+                          {project.completed} de {project.total} tarefas · prazo{" "}
                           {project.due}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
@@ -197,7 +199,7 @@ function OverviewPage() {
             <Box className="panel-heading">
               <Stack direction="row" spacing={1} className="inline-center">
                 <ListChecks size={20} />
-                <Typography variant="h3">Up next</Typography>
+                <Typography variant="h3">Próximas tarefas</Typography>
               </Stack>
               <Button
                 component={Link}
@@ -205,7 +207,7 @@ function OverviewPage() {
                 endIcon={<ArrowRight size={16} />}
                 size="small"
               >
-                All tasks
+                Todas as tarefas
               </Button>
             </Box>
             <Stack divider={<Divider flexItem />} spacing={2}>
@@ -254,7 +256,7 @@ function OverviewPage() {
           <Box className="panel-heading">
             <Stack direction="row" spacing={1} className="inline-center">
               <Sprout size={20} />
-              <Typography variant="h3">Skills on the shelf</Typography>
+              <Typography variant="h3">Skills habilidades no total</Typography>
             </Stack>
             <Button
               component={Link}
@@ -262,7 +264,7 @@ function OverviewPage() {
               endIcon={<ArrowRight size={16} />}
               size="small"
             >
-              All skills
+              Todas as habilidades
             </Button>
           </Box>
           <Box className="skill-strip">
@@ -282,7 +284,7 @@ function OverviewPage() {
                       {skill.name}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {skill.level}
+                      {label(skill.level)}
                     </Typography>
                   </Box>
                 </Stack>
@@ -296,10 +298,9 @@ function OverviewPage() {
             <Leaf size={18} />
           </Avatar>
           <Box>
-            <Typography className="strong-copy">A gentle nudge</Typography>
+            <Typography className="strong-copy">Um passo de cada vez</Typography>
             <Typography variant="body2" color="text.secondary">
-              The quickstart guide is closest to done — one quiet hour could
-              wrap it up. No rush, just a cozy place to land. ☕
+              Escolha uma tarefa pequena e reserve um momento para ela. Seu progresso acontece no seu ritmo. ☕
             </Typography>
           </Box>
         </Box>

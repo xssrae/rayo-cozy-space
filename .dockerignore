@@ -1,0 +1,13 @@
+.git
+.github
+.output
+.tanstack
+.env
+.env.*
+!.env.example
+assets
+dist
+node_modules
+playwright-report
+test-results
+*.log

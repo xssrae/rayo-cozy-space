@@ -1,215 +1,37 @@
-import {
-  Avatar,
-  Box,
-  Button,
-  Chip,
-  Divider,
-  LinearProgress,
-  MenuItem,
-  Select,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { label } from "@/lib/labels";
+import { Box, Button, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, MenuItem, Paper, Select, Stack as MuiStack, Tab, Tabs, TextField, Typography } from "@mui/material";
 import { createFileRoute } from "@tanstack/react-router";
-import { Blocks, Flame, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Archive, Blocks, GitMerge, Link2, Pencil, Plus, RotateCcw, Tag as TagIcon } from "lucide-react";
+import { useMemo, useState, type ComponentType, type ReactNode } from "react";
 import { RayoShell } from "@/components/rayo";
-import { skillLevels, type SkillLevel } from "@/features/workspace/types";
 import { useWorkspace } from "@/features/workspace/workspace-provider";
+import type { Skill, SkillLevel } from "@/features/workspace/types";
+import { requireSignedIn } from "@/lib/route-auth";
+import { mergeTaxonomyFn, setEntityTaxonomyFn, setTaxonomyArquivadoFn, updateTaxonomyFn } from "@/server/taxonomy.functions";
 
-export const Route = createFileRoute("/skills")({
-  head: () => ({
-    meta: [
-      { title: "Skills — Rayo Plan" },
-      {
-        name: "description",
-        content:
-          "A cozy shelf of developer skills, with levels, gentle progress, and a quick way to add what's next.",
-      },
-    ],
-  }),
-  component: SkillsPage,
-});
-
-const skillTone: Record<SkillLevel, "default" | "warning" | "success"> = {
-  Learning: "default",
-  Comfortable: "warning",
-  Fluent: "success",
-};
-
+export const Route = createFileRoute("/skills")({ beforeLoad: ({ location }) => requireSignedIn(location.href), validateSearch: (search: Record<string, unknown>) => ({ tab: search["tab"] === "tags" ? "tags" as const : "skills" as const }), component: SkillsPage });
+type Kind = "skill" | "tag";
+const Stack = MuiStack as unknown as ComponentType<Record<string, unknown> & { children?: ReactNode }>;
 function SkillsPage() {
-  const { skills, addSkill } = useWorkspace();
-  const [filter, setFilter] = useState<SkillLevel | "All">("All");
-  const [name, setName] = useState("");
-  const areas = [...new Set(skills.map((skill) => skill.area))];
-  const [area, setArea] = useState(areas[0] ?? "Languages");
-  const [level, setLevel] = useState<SkillLevel>("Learning");
-  const filtered = useMemo(
-    () => skills.filter((skill) => filter === "All" || skill.level === filter),
-    [skills, filter],
-  );
-  const fluentCount = skills.filter((skill) => skill.level === "Fluent").length;
-  const weekProgress = skills.length
-    ? Math.round((fluentCount / skills.length) * 100)
-    : 0;
-  const addNewSkill = () => {
-    if (!name.trim()) return;
-    addSkill({
-      name: name.trim(),
-      area,
-      level,
-      progress: level === "Learning" ? 10 : level === "Comfortable" ? 50 : 90,
-      people: ["RA"],
-    });
-    setName("");
-  };
-  return (
-    <RayoShell active="Skills" progress={weekProgress}>
-      <Box className="content-wrap">
-        <Box className="page-heading">
-          <Box>
-            <Typography variant="h1">Your skills</Typography>
-            <Typography color="text.secondary" className="heading-subtitle">
-              A gentle shelf of everything you're growing. Add the next thing
-              you'd like to learn.
-            </Typography>
-          </Box>
-        </Box>
-        <Box
-          component="form"
-          className="quick-create"
-          onSubmit={(event) => {
-            event.preventDefault();
-            addNewSkill();
-          }}
-        >
-          <TextField
-            size="small"
-            fullWidth
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Quick add a skill — what are you learning?"
-            className="quick-create-title"
-          />
-          <Select
-            size="small"
-            value={area}
-            onChange={(event) => setArea(event.target.value)}
-            className="quick-create-project"
-          >
-            {areas.map((item) => (
-              <MenuItem key={item} value={item}>
-                {item}
-              </MenuItem>
-            ))}
-          </Select>
-          <Select
-            size="small"
-            value={level}
-            onChange={(event) => setLevel(event.target.value as SkillLevel)}
-            className="quick-create-date"
-            aria-label="Skill level"
-          >
-            {skillLevels.map((item) => (
-              <MenuItem key={item} value={item}>
-                {item}
-              </MenuItem>
-            ))}
-          </Select>
-          <Button
-            variant="contained"
-            startIcon={<Plus size={18} />}
-            type="submit"
-            disabled={!name.trim()}
-          >
-            Add skill
-          </Button>
-        </Box>
-        <Box className="filters-row">
-          <Stack direction="row" spacing={1} className="filter-scroll">
-            {(["All", ...skillLevels] as const).map((item) => (
-              <Chip
-                key={item}
-                label={item}
-                clickable
-                color={filter === item ? "primary" : "default"}
-                variant={filter === item ? "filled" : "outlined"}
-                onClick={() => setFilter(item)}
-              />
-            ))}
-          </Stack>
-        </Box>
-        <Box className="results-line">
-          <Typography className="strong-copy">
-            {filtered.length} {filtered.length === 1 ? "skill" : "skills"}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {fluentCount} of {skills.length} feeling fluent
-          </Typography>
-        </Box>
-        {filtered.length ? (
-          <Box className="project-grid">
-            {filtered.map((skill) => (
-              <Box component="article" className="task-card" key={skill.id}>
-                <Box className="card-top">
-                  <Chip
-                    size="small"
-                    color={skillTone[skill.level]}
-                    label={skill.level}
-                  />
-                  <Typography variant="caption" color="text.secondary">
-                    {skill.area}
-                  </Typography>
-                </Box>
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  className="inline-center task-title-row"
-                >
-                  <Box className="skill-icon">
-                    <Flame size={20} />
-                  </Box>
-                  <Typography variant="h3" className="skill-title">
-                    {skill.name}
-                  </Typography>
-                </Stack>
-                <Box className="progress-copy">
-                  <Typography variant="caption" className="strong-copy">
-                    Confidence
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {skill.progress}%
-                  </Typography>
-                </Box>
-                <LinearProgress variant="determinate" value={skill.progress} />
-                <Divider />
-                <Box className="card-footer">
-                  <Typography variant="caption" color="text.secondary">
-                    Practiced by
-                  </Typography>
-                  <Stack direction="row">
-                    {skill.people.map((person) => (
-                      <Avatar key={person}>{person}</Avatar>
-                    ))}
-                  </Stack>
-                </Box>
-              </Box>
-            ))}
-          </Box>
-        ) : (
-          <Box className="empty-state">
-            <Box className="empty-illustration">
-              <Blocks size={36} />
-            </Box>
-            <Typography variant="h2">Nothing here — yet</Typography>
-            <Typography color="text.secondary">
-              No skills match this filter. Switch filters, or add the next thing
-              you're curious about. 🌱
-            </Typography>
-          </Box>
-        )}
-      </Box>
-    </RayoShell>
-  );
+  const search = Route.useSearch(); const workspace = useWorkspace(); const { skills, tagRecords, projects, tasks, addSkill, addTag, refresh } = workspace;
+  const [tab, setTab] = useState<Kind>(search.tab === "tags" ? "tag" : "skill"); const [showArquivado, setShowArquivado] = useState(false); const [name, setName] = useState(""); const [area, setArea] = useState("Languages"); const [level, setLevel] = useState<SkillLevel>("Learning");
+  const [editing, setEditing] = useState<{ kind: Kind; id: string; name: string } | null>(null); const [mergeSource, setMergeSource] = useState<string | null>(null); const [mergeTarget, setMergeTarget] = useState(""); const [associationOpen, setAssociationOpen] = useState(false);
+  const [entityKey, setEntityKey] = useState(""); const [chosenSkills, setChosenSkills] = useState<string[]>([]); const [chosenTags, setChosenTags] = useState<string[]>([]);
+  const records = tab === "skill" ? skills : tagRecords; const visible = records.filter((item) => showArquivado || !item.archived); const activeTargets = records.filter((item) => !item.archived && item.id !== mergeSource);
+  const coverage = useMemo(() => records.reduce((total, item) => total + item.coverage, 0), [records]);
+  const run = async (operation: () => Promise<unknown>) => { await operation(); await refresh(); };
+  const create = async () => { if (!name.trim()) return; if (tab === "skill") await addSkill({ name: name.trim(), area, level, progress: level === "Learning" ? 10 : level === "Comfortable" ? 50 : 90, archived: false, coverage: 0, focusedMinutes: 0, people: [] }); else await addTag(name.trim()); setName(""); };
+  const openAssociation = () => { const first = projects[0]; if (first) { setEntityKey(`project:${first.id}`); setChosenSkills(first.skillIds); setChosenTags(tagRecords.filter((tag) => first.tags.includes(tag.name)).map((tag) => tag.id)); } setAssociationOpen(true); };
+  const changeEntity = (value: string) => { setEntityKey(value); const [kind, id] = value.split(":"); const entity = kind === "project" ? projects.find((item) => item.id === id) : tasks.find((item) => item.id === id); setChosenSkills(entity?.skillIds ?? []); setChosenTags(kind === "project" ? tagRecords.filter((tag) => projects.find((item) => item.id === id)?.tags.includes(tag.name)).map((tag) => tag.id) : (entity && "tagIds" in entity ? entity.tagIds : [])); };
+  const saveAssociation = async () => { const [entity, entityId] = entityKey.split(":") as ["project" | "task", string]; await run(() => setEntityTaxonomyFn({ data: { entity, entityId, skillIds: chosenSkills, tagIds: chosenTags } })); setAssociationOpen(false); };
+  return <RayoShell active="Skills" progress={Math.min(100, coverage * 10)}><Box className="content-wrap">
+    <Box className="page-heading"><Box><Typography variant="h1">Habilidades e etiquetas</Typography><Typography color="text.secondary" className="heading-subtitle">Acompanhe o que você aprende e organize seu trabalho com etiquetas.</Typography></Box><Button variant="outlined" startIcon={<Link2 />} onClick={openAssociation} disabled={!projects.length}>Gerenciar associações</Button></Box>
+    <Tabs value={tab} onChange={(_, value) => setTab(value)} sx={{ mt: 3 }}><Tab value="skill" icon={<Blocks size={18} />} iconPosition="start" label="Skills" /><Tab value="tag" icon={<TagIcon size={18} />} iconPosition="start" label="Etiquetas" /></Tabs>
+    <Box component="form" className="quick-create" onSubmit={(event) => { event.preventDefault(); void create(); }}><TextField size="small" value={name} onChange={(event) => setName(event.target.value)} placeholder={tab === "skill" ? "Adicionar habilidade" : "Adicionar etiqueta"} className="quick-create-title" />{tab === "skill" && <><TextField size="small" value={area} onChange={(event) => setArea(event.target.value)} label="Área" /><Select size="small" value={level} onChange={(event) => setLevel(event.target.value as SkillLevel)}>{(["Learning", "Comfortable", "Fluent"] as const).map((item) => <MenuItem key={item} value={item}>{label(item)}</MenuItem>)}</Select></>}<Button type="submit" variant="contained" startIcon={<Plus />}>Add {tab}</Button></Box>
+    <FormControlLabel sx={{ my: 2 }} control={<Checkbox checked={showArquivado} onChange={(event) => setShowArquivado(event.target.checked)} />} label="Mostrar arquivados" />
+    <Box className="taxonomy-grid">{visible.map((item) => <Paper className="taxonomy-card" key={item.id}><Box className="card-top"><Chip label={item.archived ? "Arquivado" : tab === "skill" ? label((item as Skill).level) : "Etiqueta"} size="small" /><Stack direction="row"><Button size="small" aria-label={`Edit ${item.name}`} onClick={() => setEditing({ kind: tab, id: item.id, name: item.name })}><Pencil size={16} /></Button><Button size="small" aria-label={`Merge ${item.name}`} disabled={item.archived} onClick={() => { setMergeSource(item.id); setMergeTarget(""); }}><GitMerge size={16} /></Button><Button size="small" aria-label={`${item.archived ? "Restaurar" : "Arquivar"} ${item.name}`} onClick={() => run(() => setTaxonomyArquivadoFn({ data: { kind: tab, id: item.id, archived: !item.archived } }))}>{item.archived ? <RotateCcw size={16} /> : <Archive size={16} />}</Button></Stack></Box><Typography variant="h3">{item.name}</Typography>{tab === "skill" && <Typography color="text.secondary">{(item as Skill).area} · {(item as Skill).progress}% de confiança</Typography>}<Box className="taxonomy-stats"><span>{item.coverage} itens associados</span><span>{item.focusedMinutes} min de foco</span></Box><Stack direction="row" spacing={1}><Button component="a" href={`/?${tab}=${item.id}`} size="small">Projects</Button><Button component="a" href={`/tasks?${tab}=${item.id}`} size="small">Tasks</Button></Stack></Paper>)}{!visible.length && <Box className="empty-state"><Typography variant="h2">Tudo pronto para começar</Typography><Typography color="text.secondary">Add the first {tab}, or reveal archived items.</Typography></Box>}</Box>
+    <Dialog open={Boolean(editing)} onClose={() => setEditing(null)} fullWidth maxWidth="xs"><DialogTitle>Rename {editing?.kind}</DialogTitle><DialogContent><TextField autoFocus fullWidth sx={{ mt: 1 }} value={editing?.name ?? ""} onChange={(event) => editing && setEditing({ ...editing, name: event.target.value })} /></DialogContent><DialogActions><Button onClick={() => setEditing(null)}>Cancelar</Button><Button variant="contained" onClick={async () => { if (!editing) return; await run(() => updateTaxonomyFn({ data: { ...editing } })); setEditing(null); }}>Salvar</Button></DialogActions></Dialog>
+    <Dialog open={Boolean(mergeSource)} onClose={() => setMergeSource(null)} fullWidth maxWidth="xs"><DialogTitle>Mesclar com…</DialogTitle><DialogContent><Typography color="text.secondary" sx={{ mb: 2 }}>As associações e o histórico de foco serão transferidos para o destino. O item de origem será arquivado.</Typography><Select fullWidth value={mergeTarget} onChange={(event) => setMergeTarget(event.target.value)}><MenuItem value="" disabled>Escolha o destino</MenuItem>{activeTargets.map((item) => <MenuItem key={item.id} value={item.id}>{item.name}</MenuItem>)}</Select></DialogContent><DialogActions><Button onClick={() => setMergeSource(null)}>Cancelar</Button><Button variant="contained" disabled={!mergeTarget} onClick={async () => { if (!mergeSource) return; await run(() => mergeTaxonomyFn({ data: { kind: tab, sourceId: mergeSource, targetId: mergeTarget } })); setMergeSource(null); }}>Mesclar</Button></DialogActions></Dialog>
+    <Dialog open={associationOpen} onClose={() => setAssociationOpen(false)} fullWidth maxWidth="sm"><DialogTitle>Habilidades e etiquetas dos projetos e tarefas</DialogTitle><DialogContent><Select fullWidth value={entityKey} onChange={(event) => changeEntity(event.target.value)} sx={{ mt: 1 }}><MenuItem disabled value="">Escolha um projeto ou tarefa</MenuItem>{projects.map((project) => <MenuItem key={project.id} value={`project:${project.id}`}>Project · {project.name}</MenuItem>)}{tasks.map((task) => <MenuItem key={task.id} value={`task:${task.id}`}>Task · {task.title}</MenuItem>)}</Select><Typography className="strong-copy" sx={{ mt: 3 }}>Skills</Typography><Stack direction="row" flexWrap="wrap">{skills.filter((skill) => !skill.archived).map((skill) => <FormControlLabel key={skill.id} control={<Checkbox checked={chosenSkills.includes(skill.id)} onChange={() => setChosenSkills((current) => current.includes(skill.id) ? current.filter((id) => id !== skill.id) : [...current, skill.id])} />} label={skill.name} />)}</Stack><Typography className="strong-copy" sx={{ mt: 2 }}>Etiquetas</Typography><Stack direction="row" flexWrap="wrap">{tagRecords.filter((tag) => !tag.archived).map((tag) => <FormControlLabel key={tag.id} control={<Checkbox checked={chosenTags.includes(tag.id)} onChange={() => setChosenTags((current) => current.includes(tag.id) ? current.filter((id) => id !== tag.id) : [...current, tag.id])} />} label={tag.name} />)}</Stack></DialogContent><DialogActions><Button onClick={() => setAssociationOpen(false)}>Cancelar</Button><Button variant="contained" disabled={!entityKey} onClick={saveAssociation}>Salvar associações</Button></DialogActions></Dialog>
+  </Box></RayoShell>;
 }

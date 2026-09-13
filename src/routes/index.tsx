@@ -1,7 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ProjectsPage } from "@/features/projects/projects-page";
+import { requireSignedIn } from "@/lib/route-auth";
 
 export const Route = createFileRoute("/")({
+  beforeLoad: ({ location }) => requireSignedIn(location.href),
+  validateSearch: (search: Record<string, unknown>) => ({
+    skill: typeof search["skill"] === "string" ? search["skill"] : undefined,
+    tag: typeof search["tag"] === "string" ? search["tag"] : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Projects — Rayo Plan" },
